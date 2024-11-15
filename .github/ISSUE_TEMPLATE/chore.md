@@ -1,5 +1,5 @@
 ---
-name: "\bIssue: Chore"
+name: Chore
 about: "\bChroe 템플릿"
 title: "[\bCHORE]"
 labels: "\U0001F9F9 chore"

@@ -1,5 +1,5 @@
 ---
-name: "\bIssue: Feat"
+name: Feat
 about: Feat에 대한 템플릿
 title: "[✨Feat]"
 labels: "✨ feat"
