@@ -1,5 +1,5 @@
 ---
-name: "\bIssue: Docs"
+name: Docs
 about: "\bDocs 템플릿"
 title: "[DOCS]"
 labels: "\U0001F4DA docs"
