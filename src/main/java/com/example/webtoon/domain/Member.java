@@ -34,7 +34,7 @@ public class Member extends BaseEntity {
 
     private Gender gender;
 
-    private String alias;
+    private String nickName;
 
     private Boolean isAdult;
 }
