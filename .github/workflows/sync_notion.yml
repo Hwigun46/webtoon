@@ -30,14 +30,14 @@ jobs:
       - name: Extract Issue Number for PRs
         if: github.event_name == 'pull_request'
         run: |
-          PR_ISSUE_URL="${{ github.event.pull_request.issue_url }}"
-          ISSUE_NUMBER=$(basename "$PR_ISSUE_URL")
+          PR_BODY="${{ github.event.pull_request.body }}"
+          ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?<=Closes #)\d+' | head -n 1)
 
-          if [[ -z "$ISSUE_NUMBER" || "$ISSUE_NUMBER" == "null" ]]; then
+          if [[ -z "$ISSUE_NUMBER" ]]; then
             echo "❌ PR에 연결된 Issue가 없습니다."
             exit 1
           else
-            echo "🔍 PR 연결된 Issue 번호: $ISSUE_NUMBER"
+            echo "🔍 PR과 연결된 Issue 번호: $ISSUE_NUMBER"
             echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
           fi
 
