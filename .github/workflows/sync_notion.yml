@@ -17,10 +17,10 @@ jobs:
           --data '{
             "parent": { "database_id": "${{ secrets.NOTION_DATABASE_ID }}" },
             "properties": {
-              "Name": { "title": [{ "text": { "content": "${{ github.event.issue.title }}" } }] },
+              "제목": { "title": [{ "text": { "content": "${{ github.event.issue.title }}" } }] },
               "URL": { "url": "${{ github.event.issue.html_url }}" },
-              "Status": { "select": { "name": "작업 중" } },
-              "Team": { "select": { "name": "SPRING" } },
-              "Assignee": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.user.login }}" } }] }
+              "상태": { "select": { "name": "작업 중" } },
+              "팀": { "select": { "name": "SPRING" } },
+              "담당자": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.user.login }}" } }] }
             }
           }'
