@@ -26,6 +26,7 @@ jobs:
               "담당자": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.user.login }}" } }] }
             }
           }')
+          echo "Notion API Response: $response"
 
           # 🎯 Notion에서 생성된 page_id를 가져와서 GitHub 환경 변수로 설정
           page_id=$(echo "$response" | jq -r '.id')
