@@ -21,6 +21,6 @@ jobs:
               "URL": { "url": "${{ github.event.issue.html_url }}" },
               "Status": { "select": { "name": "작업 중" } },
               "Team": { "select": { "name": "SPRING" } },
-              "Assignee": { "rich_text": [{ "name": "${{ github.event.issue.user.login }}" }] }
+              "Assignee": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.user.login }}" } }] }
             }
           }'
