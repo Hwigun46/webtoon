@@ -9,6 +9,9 @@ jobs:
     if: github.event.action == 'opened'  # 🎯 이슈 생성 처리
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Node.js (필수)
+        uses: actions/setup-node@v4  # 최신 버전 사용
+
       - name: Send Issue to Notion
         run: |
           response=$(curl -X POST "https://api.notion.com/v1/pages" \
@@ -34,7 +37,7 @@ jobs:
           echo "$page_id" > notion_page_id.txt
 
       - name: Upload Notion Page ID
-        uses: actions/upload-artifact@v4  # 🔹 최신 버전으로 업데이트
+        uses: actions/upload-artifact@v4  # 🔹 최신 버전 적용
         with:
           name: notion_page_id
           path: notion_page_id.txt
@@ -43,8 +46,11 @@ jobs:
     if: github.event.action == 'closed'  # 🎯 이슈 닫힘 처리
     runs-on: ubuntu-latest
     steps:
+      - name: Setup Node.js (필수)
+        uses: actions/setup-node@v4  # 최신 버전 사용
+
       - name: Download Notion Page ID
-        uses: actions/download-artifact@v4  # 🔹 최신 버전으로 업데이트
+        uses: actions/download-artifact@v4  # 🔹 최신 버전 적용
         with:
           name: notion_page_id
 
