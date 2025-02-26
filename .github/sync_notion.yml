@@ -1,0 +1,26 @@
+name: Sync GitHub Issues to Notion (Spring)
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  sync_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Issue to Notion
+        run: |
+          curl -X POST "https://api.notion.com/v1/pages" \
+          -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -H "Notion-Version: 2022-06-28" \
+          --data '{
+            "parent": { "database_id": "${{ secrets.NOTION_DATABASE_ID }}" },
+            "properties": {
+              "Name": { "title": [{ "text": { "content": "${{ github.event.issue.title }}" } }] },
+              "URL": { "url": "${{ github.event.issue.html_url }}" },
+              "Status": { "select": { "name": "진행 중" } }
+              "Team": { "select": { "name": "SPRING" } },
+              "Assignee": { "people": [{ "name": "${{ github.event.issue.user.login }}" }] }
+            }
+          }'
