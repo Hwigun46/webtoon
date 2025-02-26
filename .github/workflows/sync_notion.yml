@@ -19,8 +19,8 @@ jobs:
             "properties": {
               "Name": { "title": [{ "text": { "content": "${{ github.event.issue.title }}" } }] },
               "URL": { "url": "${{ github.event.issue.html_url }}" },
-              "Status": { "select": { "name": "진행 중" } },
+              "Status": { "select": { "name": "작업 중" } },
               "Team": { "select": { "name": "SPRING" } },
-              "Assignee": { "people": [{ "name": "${{ github.event.issue.user.login }}" }] }
+              "Assignee": { "rich_text": [{ "name": "${{ github.event.issue.user.login }}" }] }
             }
           }'
