@@ -10,4 +10,5 @@ public class WebtoonApplication {
         SpringApplication.run(WebtoonApplication.class, args);
     }
 
+
 }
