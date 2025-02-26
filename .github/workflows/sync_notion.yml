@@ -43,7 +43,7 @@ jobs:
                 type: "paragraph",
                 paragraph: {
                   rich_text: [
-                    { type: "text", text: { content: ($issue_body | gsub("\n"; "\\n")) } }
+                    { type: "text", text: { content: ($issue_body | gsub("\""; "\\\"") | gsub("\n"; "\\n")) } }
                   ]
                 }
               }
@@ -61,12 +61,22 @@ jobs:
 
           if [[ "$page_id" != "null" && "$page_id" != "" ]]; then
             echo "$page_id" > notion_page_id.txt
-            echo "Notion Page ID 저장 완료: $page_id"
+            echo "✅ Notion Page ID 저장 완료: $page_id"
           else
             echo "❌ Notion Page ID가 생성되지 않았습니다. API 응답을 확인하세요."
             cat notion_response.json
             exit 1
           fi
+
+      - name: Check & Upload Notion Page ID
+        run: |
+          if [ -f notion_page_id.txt ]; then
+            echo "✅ Notion Page ID 파일이 존재합니다. 업로드를 진행합니다."
+          else
+            echo "❌ Notion Page ID 파일이 존재하지 않습니다. 업로드를 중단합니다."
+            exit 1
+          fi
+        continue-on-error: false
 
       - name: Upload Notion Page ID
         uses: actions/upload-artifact@v4
@@ -87,13 +97,18 @@ jobs:
           name: notion_page_id
         continue-on-error: true
 
-      - name: Read Notion Page ID
+      - name: Check if Notion Page ID Exists
         run: |
+          ls -l
           if [ ! -f notion_page_id.txt ]; then
-            echo "❌ Notion Page ID 파일을 찾을 수 없습니다. Artifact가 제대로 업로드되었는지 확인하세요."
+            echo "❌ Notion Page ID 파일을 찾을 수 없습니다. Artifact가 정상적으로 업로드되었는지 확인하세요."
             exit 1
+          else
+            echo "✅ Notion Page ID 파일이 확인되었습니다."
           fi
 
+      - name: Read Notion Page ID
+        run: |
           page_id=$(cat notion_page_id.txt)
           echo "Updating Notion Page ID: $page_id"
           
