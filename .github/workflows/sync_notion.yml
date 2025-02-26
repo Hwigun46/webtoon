@@ -58,7 +58,14 @@ jobs:
 
           # 🎯 Notion에서 생성된 page_id를 가져와서 파일로 저장
           page_id=$(echo "$response" | jq -r '.id')
-          echo "$page_id" > notion_page_id.txt
+
+          # 🎯 page_id가 유효한지 체크 후 파일 저장
+          if [[ "$page_id" != "null" && "$page_id" != "" ]]; then
+            echo "$page_id" > notion_page_id.txt
+          else
+            echo "❌ Notion Page ID가 생성되지 않았습니다. API 응답을 확인하세요."
+            exit 1
+          fi
 
       - name: Upload Notion Page ID
         uses: actions/upload-artifact@v4  # 🔹 최신 버전 적용
@@ -77,9 +84,15 @@ jobs:
         uses: actions/download-artifact@v4  # 🔹 최신 버전 적용
         with:
           name: notion_page_id
+        continue-on-error: true  # 🎯 다운로드 실패해도 실행을 멈추지 않음
 
       - name: Read Notion Page ID
         run: |
+          if [ ! -f notion_page_id.txt ]; then
+            echo "❌ Notion Page ID 파일을 찾을 수 없습니다. Artifact가 제대로 업로드되었는지 확인하세요."
+            exit 1
+          fi
+
           page_id=$(cat notion_page_id.txt)
           echo "Updating Notion Page ID: $page_id"
           
