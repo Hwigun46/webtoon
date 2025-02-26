@@ -2,11 +2,11 @@ name: Sync GitHub Issues to Notion (Spring)
 
 on:
   issues:
-    types: [opened, closed]
+    types: [opened, closed]  # 🎯 "opened" (이슈 생성) + "closed" (이슈 닫힘) 함께 처리
 
 jobs:
   sync_issue:
-    if: github.event.action == 'opened'
+    if: github.event.action == 'opened'  # 🎯 이슈 생성 처리
     runs-on: ubuntu-latest
     steps:
       - name: Send Issue to Notion
@@ -34,17 +34,17 @@ jobs:
           echo "$page_id" > notion_page_id.txt
 
       - name: Upload Notion Page ID
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # 🔹 최신 버전으로 업데이트
         with:
           name: notion_page_id
           path: notion_page_id.txt
 
   update_issue:
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed'  # 🎯 이슈 닫힘 처리
     runs-on: ubuntu-latest
     steps:
       - name: Download Notion Page ID
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4  # 🔹 최신 버전으로 업데이트
         with:
           name: notion_page_id
 
