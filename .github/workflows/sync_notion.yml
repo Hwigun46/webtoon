@@ -7,28 +7,98 @@ on:
     types: [opened]
 
 jobs:
-  update_issue_status:
+  sync_issue:
+    if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js
         uses: actions/setup-node@v4
 
-      - name: Determine Notion Status Update
-        id: determine_status
+      - name: Convert Issue Body to JSON
+        run: echo '${{ github.event.issue.body }}' | jq -Rs '.' > issue_body.json
+
+      - name: Send Issue to Notion
         run: |
-          if [[ "${{ github.event_name }}" == "issues" && "${{ github.event.action }}" == "opened" ]]; then
-            echo "STATUS=작업 중" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.action }}" == "opened" ]]; then
-            echo "STATUS=리뷰 대기" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "issues" && "${{ github.event.action }}" == "closed" ]]; then
-            echo "STATUS=완료" >> $GITHUB_ENV
+          ISSUE_BODY=$(cat issue_body.json)
+
+          response=$(jq -n \
+          --arg database_id "${{ secrets.NOTION_DATABASE_ID }}" \
+          --arg title "${{ github.event.issue.title }}" \
+          --arg url "${{ github.event.issue.html_url }}" \
+          --arg status "작업 중" \
+          --arg team "SPRING" \
+          --arg assignee "${{ github.event.issue.user.login }}" \
+          --arg issue_number "${{ github.event.issue.number }}" \
+          '{
+            parent: { database_id: $database_id },
+            properties: {
+              "제목": { title: [{ text: { content: $title } }] },
+              "URL": { url: $url },
+              "상태": { status: { name: $status } },
+              "팀": { select: { name: $team } },
+              "담당자": { rich_text: [{ type: "text", text: { content: $assignee } }] },
+              "이슈 번호": { number: ($issue_number | tonumber) }
+            }
+          }' | tee notion_response.json | curl -X POST "https://api.notion.com/v1/pages" \
+          -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -H "Notion-Version: 2022-06-28" \
+          --data @-)
+
+          echo "Notion API Response: $response"
+
+  update_issue:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+
+      - name: Find Notion Page for the Issue
+        run: |
+          QUERY_RESULT=$(curl -X POST "https://api.notion.com/v1/databases/${{ secrets.NOTION_DATABASE_ID }}/query" \
+          -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -H "Notion-Version: 2022-06-28" \
+          --data '{
+            "filter": {
+              "property": "이슈 번호",
+              "number": {
+                "equals": ${{ github.event.issue.number }}
+              }
+            }
+          }')
+
+          page_id=$(echo "$QUERY_RESULT" | jq -r '.results[0].id')
+
+          if [[ "$page_id" != "null" && "$page_id" != "" ]]; then
+            echo "✅ Notion Page ID 찾음: $page_id"
+            echo "PAGE_ID=$page_id" >> $GITHUB_ENV
           else
-            echo "❌ 해당 이벤트는 처리할 필요 없음."
-            exit 0
+            echo "❌ Notion 페이지를 찾을 수 없습니다."
+            exit 1
           fi
 
+      - name: Update Notion Page Status to "완료"
+        run: |
+          curl -X PATCH "https://api.notion.com/v1/pages/${{ env.PAGE_ID }}" \
+          -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -H "Notion-Version: 2022-06-28" \
+          --data '{
+            "properties": {
+              "상태": { "status": { "name": "완료" } }
+            }
+          }'
+
+  update_issue_status_for_pr:
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+
       - name: Extract Issue Number for PRs
-        if: github.event_name == 'pull_request'
         run: |
           PR_BODY="${{ github.event.pull_request.body }}"
           ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?<=Closes #)\d+' | head -n 1)
@@ -40,11 +110,6 @@ jobs:
             echo "🔍 PR과 연결된 Issue 번호: $ISSUE_NUMBER"
             echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
           fi
-
-      - name: Set Issue Number for Issue Events
-        if: github.event_name == 'issues'
-        run: |
-          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
 
       - name: Find Notion Page for the Issue
         run: |
@@ -73,7 +138,7 @@ jobs:
             exit 1
           fi
 
-      - name: Update Notion Page Status
+      - name: Update Notion Page Status to "리뷰 대기"
         run: |
           curl -X PATCH "https://api.notion.com/v1/pages/${{ env.PAGE_ID }}" \
           -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
@@ -81,8 +146,6 @@ jobs:
           -H "Notion-Version: 2022-06-28" \
           --data '{
             "properties": {
-              "상태": { "status": { "name": "'"${{ env.STATUS }}"'" } }
+              "상태": { "status": { "name": "리뷰 대기" } }
             }
           }'
-
-          echo "✅ Notion 상태가 '${{ env.STATUS }}'로 업데이트됨."
