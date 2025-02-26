@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js (필수)
-        uses: actions/setup-node@v4  # 최신 버전 사용
+        uses: actions/setup-node@v4  # 최신 버전 적용
 
       - name: Send Issue to Notion
         run: |
@@ -22,12 +22,22 @@ jobs:
             "parent": { "database_id": "${{ secrets.NOTION_DATABASE_ID }}" },
             "properties": {
               "제목": { "title": [{ "text": { "content": "${{ github.event.issue.title }}" } }] },
-              "내용": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.body }}" } }] },
               "URL": { "url": "${{ github.event.issue.html_url }}" },
               "상태": { "status": { "name": "작업 중" } },
               "팀": { "select": { "name": "SPRING" } },
               "담당자": { "rich_text": [{ "type": "text", "text": { "content": "${{ github.event.issue.user.login }}" } }] }
-            }
+            },
+            "children": [
+              {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                  "rich_text": [
+                    { "type": "text", "text": { "content": "${{ github.event.issue.body }}" } }
+                  ]
+                }
+              }
+            ]
           }')
 
           echo "Notion API Response: $response"
@@ -47,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Node.js (필수)
-        uses: actions/setup-node@v4  # 최신 버전 사용
+        uses: actions/setup-node@v4  # 최신 버전 적용
 
       - name: Download Notion Page ID
         uses: actions/download-artifact@v4  # 🔹 최신 버전 적용
