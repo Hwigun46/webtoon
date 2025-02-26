@@ -27,18 +27,29 @@ jobs:
             exit 0
           fi
 
-      - name: Find Notion Page for the Issue
+      - name: Extract Issue Number for PRs
+        if: github.event_name == 'pull_request'
         run: |
-          # Issue 번호 설정
-          if [[ "${{ github.event_name }}" == "issues" ]]; then
-            ISSUE_NUMBER=${{ github.event.issue.number }}
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            ISSUE_NUMBER=${{ github.event.pull_request.issue_url##*/ }}  # PR과 연결된 Issue 번호 가져오기
+          PR_ISSUE_URL="${{ github.event.pull_request.issue_url }}"
+          ISSUE_NUMBER=$(basename "$PR_ISSUE_URL")
+
+          if [[ -z "$ISSUE_NUMBER" || "$ISSUE_NUMBER" == "null" ]]; then
+            echo "❌ PR에 연결된 Issue가 없습니다."
+            exit 1
+          else
+            echo "🔍 PR 연결된 Issue 번호: $ISSUE_NUMBER"
+            echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
           fi
 
+      - name: Set Issue Number for Issue Events
+        if: github.event_name == 'issues'
+        run: |
+          echo "ISSUE_NUMBER=${{ github.event.issue.number }}" >> $GITHUB_ENV
+
+      - name: Find Notion Page for the Issue
+        run: |
           echo "🔍 Searching for Notion Page with Issue Number: $ISSUE_NUMBER"
 
-          # Notion 데이터베이스에서 이슈 번호로 검색
           QUERY_RESULT=$(curl -X POST "https://api.notion.com/v1/databases/${{ secrets.NOTION_DATABASE_ID }}/query" \
           -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
           -H "Content-Type: application/json" \
