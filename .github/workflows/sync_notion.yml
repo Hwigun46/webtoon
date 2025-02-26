@@ -19,6 +19,17 @@ jobs:
         run: |
           ISSUE_BODY=$(cat issue_body.json)
 
+          # 🛠 GitHub Issue 본문을 개행 단위로 분리하여 Notion 블록(children)으로 변환
+          NOTION_CHILDREN=$(jq -n --arg text "$ISSUE_BODY" '
+            ($text | gsub("\""; "\\\"") | split("\n") | map({
+              object: "block",
+              type: "paragraph",
+              paragraph: {
+                rich_text: [{ type: "text", text: { content: . } }]
+              }
+            }))
+          ')
+
           response=$(jq -n \
           --arg database_id "${{ secrets.NOTION_DATABASE_ID }}" \
           --arg title "${{ github.event.issue.title }}" \
@@ -36,7 +47,8 @@ jobs:
               "팀": { select: { name: $team } },
               "담당자": { rich_text: [{ type: "text", text: { content: $assignee } }] },
               "이슈 번호": { number: ($issue_number | tonumber) }
-            }
+            },
+            children: '"$NOTION_CHILDREN"'
           }' | tee notion_response.json | curl -X POST "https://api.notion.com/v1/pages" \
           -H "Authorization: Bearer ${{ secrets.NOTION_API_KEY }}" \
           -H "Content-Type: application/json" \
