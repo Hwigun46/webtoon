@@ -101,11 +101,13 @@ jobs:
       - name: Extract Issue Number for PRs
         run: |
           PR_BODY="${{ github.event.pull_request.body }}"
-          ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oP '(?<=issues/)\d+' | head -n 1)
+
+          # ✅ PR 본문에서 Issue 링크를 찾아 가장 마지막 숫자(이슈 번호)만 추출
+          ISSUE_NUMBER=$(echo "$PR_BODY" | grep -oE 'issues/[0-9]+' | awk -F'/' '{print $2}' | tail -n 1)
 
           if [[ -z "$ISSUE_NUMBER" ]]; then
-            echo "❌ PR에 연결된 Issue가 없습니다."
-            exit 1
+            echo "⚠ PR에 연결된 Issue를 찾지 못했습니다. (Issue 연동이 없을 수도 있음)"
+            exit 0  # 강제 종료하지 않고 경고만 출력
           else
             echo "🔍 PR과 연결된 Issue 번호: $ISSUE_NUMBER"
             echo "ISSUE_NUMBER=$ISSUE_NUMBER" >> $GITHUB_ENV
