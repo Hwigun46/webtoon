@@ -2,19 +2,18 @@ name: Sync GitHub Issues to Notion (Spring)
 
 on:
   issues:
-    types: [opened, closed]  # 🎯 "opened" (이슈 생성) + "closed" (이슈 닫힘) 함께 처리
+    types: [opened, closed]
 
 jobs:
   sync_issue:
-    if: github.event.action == 'opened'  # 🎯 이슈 생성 처리
+    if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node.js (필수)
-        uses: actions/setup-node@v4  # 최신 버전 적용
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
 
-      - name: Convert Issue Body to JSON (개행 및 특수문자 처리)
-        run: |
-          echo '${{ github.event.issue.body }}' | jq -Rs '.' > issue_body.json
+      - name: Convert Issue Body to JSON
+        run: echo '${{ github.event.issue.body }}' | jq -Rs '.' > issue_body.json
 
       - name: Send Issue to Notion
         run: |
@@ -43,7 +42,7 @@ jobs:
                 type: "paragraph",
                 paragraph: {
                   rich_text: [
-                    { type: "text", text: { content: ($issue_body | gsub("\n"; "\\n")) } }
+                    { type: "text", text: { content: ($issue_body | gsub("\""; "\\\"") | gsub("\n"; "\\n")) } }
                   ]
                 }
               }
@@ -56,15 +55,23 @@ jobs:
 
           echo "Notion API Response: $response"
 
-          # 🎯 Notion에서 생성된 page_id를 가져와서 파일로 저장
           page_id=$(echo "$response" | jq -r '.id')
 
           if [[ "$page_id" != "null" && "$page_id" != "" ]]; then
             echo "$page_id" > notion_page_id.txt
-            echo "Notion Page ID 저장 완료: $page_id"
+            echo "✅ Notion Page ID 저장 완료: $page_id"
           else
             echo "❌ Notion Page ID가 생성되지 않았습니다. API 응답을 확인하세요."
             cat notion_response.json
+            exit 1
+          fi
+
+      - name: Check & Upload Notion Page ID
+        run: |
+          if [ -f notion_page_id.txt ]; then
+            echo "✅ Notion Page ID 파일이 존재합니다. 업로드를 진행합니다."
+          else
+            echo "❌ Notion Page ID 파일이 존재하지 않습니다. 업로드를 중단합니다."
             exit 1
           fi
 
@@ -75,11 +82,11 @@ jobs:
           path: notion_page_id.txt
 
   update_issue:
-    if: github.event.action == 'closed'  # 🎯 이슈 닫힘 처리
+    if: github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Node.js (필수)
-        uses: actions/setup-node@v4  # 최신 버전 적용
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
 
       - name: Download Notion Page ID
         uses: actions/download-artifact@v4
@@ -87,13 +94,18 @@ jobs:
           name: notion_page_id
         continue-on-error: true
 
-      - name: Read Notion Page ID
+      - name: Check if Notion Page ID Exists
         run: |
+          ls -l
           if [ ! -f notion_page_id.txt ]; then
-            echo "❌ Notion Page ID 파일을 찾을 수 없습니다. Artifact가 제대로 업로드되었는지 확인하세요."
+            echo "❌ Notion Page ID 파일을 찾을 수 없습니다. Artifact가 정상적으로 업로드되었는지 확인하세요."
             exit 1
+          else
+            echo "✅ Notion Page ID 파일이 확인되었습니다."
           fi
 
+      - name: Read Notion Page ID
+        run: |
           page_id=$(cat notion_page_id.txt)
           echo "Updating Notion Page ID: $page_id"
           
