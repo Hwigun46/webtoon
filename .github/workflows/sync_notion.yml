@@ -18,15 +18,24 @@ jobs:
 
       - name: Send Issue to Notion
         run: |
-          response=$(jq -n --arg issue_body "$(cat issue_body.json)" \
+          ISSUE_BODY=$(cat issue_body.json)
+
+          response=$(jq -n \
+          --arg database_id "${{ secrets.NOTION_DATABASE_ID }}" \
+          --arg title "${{ github.event.issue.title }}" \
+          --arg url "${{ github.event.issue.html_url }}" \
+          --arg status "작업 중" \
+          --arg team "SPRING" \
+          --arg assignee "${{ github.event.issue.user.login }}" \
+          --arg issue_body "$ISSUE_BODY" \
           '{
-            parent: { database_id: "${{ secrets.NOTION_DATABASE_ID }}" },
+            parent: { database_id: $database_id },
             properties: {
-              제목: { title: [{ text: { content: "${{ github.event.issue.title }}" } }] },
-              URL: { url: "${{ github.event.issue.html_url }}" },
-              상태: { status: { name: "작업 중" } },
-              팀: { select: { name: "SPRING" } },
-              담당자: { rich_text: [{ type: "text", text: { content: "${{ github.event.issue.user.login }}" } }] }
+              "제목": { title: [{ text: { content: $title } }] },
+              "URL": { url: $url },
+              "상태": { status: { name: $status } },
+              "팀": { select: { name: $team } },
+              "담당자": { rich_text: [{ type: "text", text: { content: $assignee } }] }
             },
             children: [
               {
